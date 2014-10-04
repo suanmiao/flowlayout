@@ -20,7 +20,6 @@ import java.util.List;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -76,30 +75,25 @@ public class FlowLayout extends ViewGroup {
     }
   }
 
+  /**
+   * meaning of "weight" and "MATCH_PARENT":
+   * 1. "weight":works when there is extra space in parent , and the value decide the percent
+   * that child can take
+   * 2. "MATCH_PARENT": means that the view wants to be as big as its parent
+   * >>> so the order for space allocate is : normal/MATCH_PARENT then weight
+   */
   @Override
   protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
     super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-    if (efficientMode) {
-      switch (orientation) {
-        case ORIENTATION_HORIZONTAL:
-          measureEfficientHorizontally(widthMeasureSpec, heightMeasureSpec);
-          break;
-        case ORIENTATION_VERTICAL:
-          measureVertically(widthMeasureSpec, heightMeasureSpec);
-          break;
-      }
-    } else {
-      switch (orientation) {
-        case ORIENTATION_HORIZONTAL:
-          measureHorizontally(widthMeasureSpec, heightMeasureSpec);
-          break;
-        case ORIENTATION_VERTICAL:
-          measureVertically(widthMeasureSpec, heightMeasureSpec);
-          break;
-      }
+    switch (orientation) {
+      case ORIENTATION_HORIZONTAL:
+        measureHorizontally(widthMeasureSpec, heightMeasureSpec);
+        break;
+      case ORIENTATION_VERTICAL:
+        measureVertically(widthMeasureSpec, heightMeasureSpec);
+        break;
     }
   }
-
 
   private void measureHorizontally(int widthMeasureSpec, int heightMeasureSpec) {
     int widthSize = MeasureSpec.getSize(widthMeasureSpec) - getPaddingLeft() - getPaddingRight();
@@ -107,18 +101,10 @@ public class FlowLayout extends ViewGroup {
     int widthMode = MeasureSpec.getMode(widthMeasureSpec);
     int heightMode = MeasureSpec.getMode(heightMeasureSpec);
     int availableWidth = widthSize - getPaddingLeft() - getPaddingRight();
-
     /**
      * two kind of type should be taken into account:
      * 1. dimen = 0 && weight !=0
      * 2. MATCH_PARENT
-     */
-    /**
-     * meaning of "weight" and "MATCH_PARENT":
-     * 1. "weight":works when there is extra space in parent , and the value decide the percent
-     * that child can take
-     * 2. "MATCH_PARENT": means that the view wants to be as big as its parent
-     * >>> so the order for space allocate is : normal/MATCH_PARENT then weight
      */
     List<List<Integer>> lineChildIndex = new ArrayList<List<Integer>>();
     List<Integer> lineHeight = new ArrayList<Integer>();
@@ -284,18 +270,6 @@ public class FlowLayout extends ViewGroup {
     int heightMode = MeasureSpec.getMode(heightMeasureSpec);
     int availableHeight = heightSize - getPaddingTop() - getPaddingBottom();
 
-    /**
-     * two kind of type should be taken into account:
-     * 1. dimen = 0 && weight !=0
-     * 2. MATCH_PARENT
-     */
-    /**
-     * meaning of "weight" and "MATCH_PARENT":
-     * 1. "weight":works when there is extra space in parent , and the value decide the percent
-     * that child can take
-     * 2. "MATCH_PARENT": means that the view wants to be as big as its parent
-     * >>> so the order for space allocate is : normal/MATCH_PARENT then weight
-     */
     List<List<Integer>> rowChildIndex = new ArrayList<List<Integer>>();
     List<Integer> rowWidth = new ArrayList<Integer>();
     int currentRowWidth = 0;
@@ -515,114 +489,4 @@ public class FlowLayout extends ViewGroup {
     }
   }
 
-  private void measureEfficientHorizontally(int widthMeasureSpec, int heightMeasureSpec) {
-    int widthSize = MeasureSpec.getSize(widthMeasureSpec) - getPaddingLeft() - getPaddingRight();
-    int heightSize = MeasureSpec.getSize(heightMeasureSpec) - getPaddingTop() - getPaddingBottom();
-    int widthMode = MeasureSpec.getMode(widthMeasureSpec);
-    int heightMode = MeasureSpec.getMode(heightMeasureSpec);
-    int availableWidth = widthSize - getPaddingLeft() - getPaddingRight();
-
-    List<Node> currentBorderList = new ArrayList<Node>();
-    int currentRightBorder = 0;
-    int maxWidth = 0;
-    for (int i = 0; i < getChildCount(); i++) {
-      View child = getChildAt(i);
-      FlowLayoutParam lp = (FlowLayoutParam) child.getLayoutParams();
-
-      int childWidthMode = MeasureSpec.EXACTLY;
-      int childHeightMode = MeasureSpec.EXACTLY;
-
-      int childWidthSize = widthSize;
-      int childHeightSize = heightSize;
-
-      if (lp.height > 0) {
-        childHeightSize = lp.height;
-      } else if (heightMode == MeasureSpec.UNSPECIFIED) {
-        childHeightMode = MeasureSpec.UNSPECIFIED;
-        childHeightSize = 0;
-      }
-
-      if (lp.width == LayoutParams.MATCH_PARENT || (lp.width == 0 && lp.weight != 0)) {
-        if (currentRightBorder + lp.leftMargin + lp.rightMargin < availableWidth) {
-          // take place whole line
-          childWidthSize = availableWidth - currentRightBorder - lp.leftMargin - lp.rightMargin;
-          lp.left = currentRightBorder + lp.leftMargin;
-          lp.top =
-              getCorrectTopPosition(currentBorderList, lp.left, childWidthSize + lp.leftMargin
-                  + lp.rightMargin);
-          refreshBorder(child, currentBorderList);
-          currentRightBorder = 0;
-          maxWidth = widthSize;
-        } else {
-          // create new line and take place whole line
-          childWidthSize = availableWidth - lp.leftMargin - lp.rightMargin;
-          List<Node> replaceBorder = new ArrayList<Node>();
-          int correctTopPosition =
-              getCorrectTopPosition(currentBorderList, getPaddingLeft(), availableWidth);
-          replaceBorder.add(new Node(getPaddingLeft(), correctTopPosition));
-          replaceBorder.add(new Node(childWidthSize - getPaddingRight(), correctTopPosition));
-          lp.top = correctTopPosition + lp.topMargin;
-          lp.left = getPaddingLeft();
-
-          currentBorderList = replaceBorder;
-          currentRightBorder = 0;
-          maxWidth = widthSize;
-        }
-      } else {
-        if (currentRightBorder + lp.leftMargin + lp.rightMargin < availableWidth) {
-          childWidthSize = lp.width;
-          lp.left = currentRightBorder + lp.leftMargin;
-          lp.top =
-              getCorrectTopPosition(currentBorderList, lp.left, childWidthSize + lp.leftMargin
-                  + lp.rightMargin);
-          refreshBorder(child, currentBorderList);
-          currentRightBorder += childWidthSize + lp.leftMargin + lp.rightMargin;
-        } else {
-          maxWidth = Math.max(maxWidth, currentRightBorder);
-          childWidthSize = lp.width;
-          lp.left = getPaddingLeft() + lp.leftMargin;
-          lp.top =
-              getCorrectTopPosition(currentBorderList, lp.left, childWidthSize + lp.leftMargin
-                  + lp.rightMargin);
-          refreshBorder(child, currentBorderList);
-          currentRightBorder = childWidthSize + lp.leftMargin + lp.rightMargin;
-        }
-      }
-
-      child.measure(MeasureSpec.makeMeasureSpec(childWidthSize, childWidthMode),
-          MeasureSpec.makeMeasureSpec(childHeightSize, childHeightMode));
-      // set position for this child
-    }
-
-    // setMeasuredDimension((widthMode == MeasureSpec.UNSPECIFIED || widthMode ==
-    // MeasureSpec.AT_MOST)
-    // ? maxWidth : widthSize,
-    // (heightMode == MeasureSpec.UNSPECIFIED || heightMode == MeasureSpec.AT_MOST)
-    // ? totalHeight : heightSize);
-  }
-
-  private int getCorrectTopPosition(List<Node> borderList, int left, int childTotalWidth) {
-    /**
-     * two case :
-     * 1.right edge is not fully taken , if the place is bigger than child needs return right edge
-     * 2.right edge is taken , measure from start ,just see 0+childTotalWidth is bigger than which
-     * base line
-     */
-    return 0;
-  }
-
-  private void refreshBorder(View child, List<Node> borderList) {
-
-  }
-
-
-  private class Node {
-    public int x;
-    public int y;
-
-    public Node(int x, int y) {
-      this.x = x;
-      this.y = y;
-    }
-  }
 }

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="FlowLayout">
+        <attr name="flow_orientation" format="enum">
+            <enum name="horizontal" value="2"/>
+            <enum name="vertical" value="3"/>
+        </attr>
+
+        <attr name="flow_weight" format="integer"/>
+        <attr name="flow_efficient_mode" format="boolean"/>
+    </declare-styleable>
+
+</resources>

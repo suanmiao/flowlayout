@@ -5,6 +5,8 @@
   Enhanced LinearLayout , child will auto flow when there is no enough space in current line
 Also , you can be more efficient when you want to develop some layout pattern (see "Demonstration" for more detail )
 
+![](https://github.com/suanmiao/flowlayout/raw/master/imgs/normal_mode.png =250x)
+
 ## Demonstration
 
 ###1.orientation
@@ -16,6 +18,7 @@ when there is no enough space for more child , it will be placed in  another lin
 
 child with parameter "weight" will share the rest of space in current line
 > notice:
+
 > when you use "weight" ,please ensure that "width"/"height" is zero
 > only children in same line can share rest of space on current line
 
@@ -23,7 +26,11 @@ child with parameter "weight" will share the rest of space in current line
 
 child can be placed in different gravity. for example when orientation is horizontal ,
 children can be placed from left or right edge flow layout
+
+![](https://github.com/suanmiao/flowlayout/raw/master/imgs/gravity_weight.png =250x)
+
 > notice:
+
 > "gravity=left" in horizontal mode equals "gravity=top" in horizontal mode
 > "gravity=right" in horizontal mode equals "gravity=bottom" in horizontal mode
 
@@ -32,7 +39,7 @@ children can be placed from left or right edge flow layout
 this is a amazing function !
 when you want to create layout that kind:
 
-![](https://github.com/suanmiao/flowlayout/raw/master/imgs/line_number_usage.png)
+![](https://github.com/suanmiao/flowlayout/raw/master/imgs/line_number_usage.png =250x)
 
 if you use LinearLayout,you should write code:
 
@@ -147,7 +154,7 @@ xmlns:flow="http://schemas.android.com/apk/res-auto"
 
 then you can use custom attribute below
 
-1.layout parameters
+###1.layout parameters
 
 flow:orientation
 
@@ -169,7 +176,7 @@ flow:verticalSpacing
 > specific child spacing for this layout , spacing between child vertically
 > default value is "0"
 
-2.child layout parameters
+###2.child layout parameters
 
 flow:weight
 
@@ -187,7 +194,9 @@ flow:lineNum
 
 > specific line number for this child
 
-> notice: same line number does't always means same line or row ,only if there are coherent and space is enough
+> notice:
+
+> same line number does't always means same line or row ,only if there are coherent and space is enough
 
 ## Copyrights
 

@@ -5,7 +5,7 @@
   Enhanced LinearLayout , child will auto flow when there is no enough space in current line
 Also , you can be more efficient when you want to develop some layout pattern (see "Demonstration" for more detail )
 
-![](https://github.com/suanmiao/flowlayout/raw/master/imgs/normal_mode.png =240*400)
+![](https://github.com/suanmiao/flowlayout/raw/master/imgs/normal_mode.png)
 
 ## Demonstration
 
@@ -27,7 +27,7 @@ child with parameter "weight" will share the rest of space in current line
 child can be placed in different gravity. for example when orientation is horizontal ,
 children can be placed from left or right edge flow layout
 
-![](https://github.com/suanmiao/flowlayout/raw/master/imgs/gravity_weight.png =240x400)
+![](https://github.com/suanmiao/flowlayout/raw/master/imgs/gravity_weight.png)
 
 > notice:
 
@@ -39,7 +39,7 @@ children can be placed from left or right edge flow layout
 this is a amazing function !
 when you want to create layout that kind:
 
-![](https://github.com/suanmiao/flowlayout/raw/master/imgs/line_number_usage.png =240x400)
+![](https://github.com/suanmiao/flowlayout/raw/master/imgs/line_number_usage.png)
 
 if you use LinearLayout,you should write code:
 

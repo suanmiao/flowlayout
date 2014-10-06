@@ -1,0 +1,78 @@
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:flow="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#000000"
+    >
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <com.suan.flowlayout.FlowLayout
+            flow:orientation="horizontal"
+            flow:gravity="center"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:text="@string/it_is_amazing_function"
+                style="@style/textStyle"
+                android:background="#4ac8b5"
+                android:layout_width="wrap_content"
+                android:layout_height="80dp"/>
+
+            <TextView
+                android:text="@string/description"
+                style="@style/textStyle"
+                android:padding="20dp"
+                android:gravity="center"
+                android:textSize="14dp"
+                android:background="#ffc145"
+                flow:lineNum="1"
+                android:layout_width="match_parent"
+                android:layout_height="170dp"/>
+
+            <TextView
+                android:text="@string/weight_1_line_num_2"
+                flow:lineNum="2"
+                flow:weight="1"
+                style="@style/textStyle"
+                android:background="#4c9be6"
+                android:layout_width="0dp"
+                android:layout_height="80dp"/>
+
+            <TextView
+                android:text="@string/weight_1_line_num_2"
+                flow:lineNum="2"
+                flow:weight="1"
+                style="@style/textStyle"
+                android:background="#c2b765"
+                android:layout_width="0dp"
+                android:layout_height="80dp"/>
+
+            <TextView
+                android:text="@string/weight_1_line_num_3"
+                flow:lineNum="3"
+                flow:weight="1"
+                style="@style/textStyle"
+                android:background="#4c9be6"
+                android:layout_width="0dp"
+                android:layout_height="80dp"/>
+
+            <TextView
+                android:text="@string/weight_2_line_num_3"
+                flow:lineNum="3"
+                flow:weight="2"
+                style="@style/textStyle"
+                android:background="#c2b765"
+                android:layout_width="0dp"
+                android:layout_height="80dp"/>
+
+        </com.suan.flowlayout.FlowLayout>
+
+    </ScrollView>
+
+</LinearLayout>

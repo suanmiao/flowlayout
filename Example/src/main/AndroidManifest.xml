@@ -16,6 +16,27 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".NormalFlowActivity"
+            android:label="@string/title_activity_example">
+        </activity>
+
+        <activity
+            android:name=".GravityWeightActivity"
+            android:label="@string/title_activity_example">
+        </activity>
+
+        <activity
+            android:name=".LineNumActivity"
+            android:label="@string/title_activity_example">
+        </activity>
+
+        <activity
+            android:name=".CrazyActivity"
+            android:label="@string/title_activity_example">
+        </activity>
+
     </application>
 
 </manifest>

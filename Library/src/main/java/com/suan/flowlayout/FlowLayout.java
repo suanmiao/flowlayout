@@ -20,6 +20,7 @@ import java.util.List;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -42,7 +43,45 @@ public class FlowLayout extends ViewGroup {
   public static final int ORIENTATION_HORIZONTAL = 2;
   public static final int ORIENTATION_VERTICAL = 3;
 
+  public static final int GRAVITY_NONE = -1;
+  public static final int GRAVITY_LEFT = 1;
+  public static final int GRAVITY_CENTER = 2;
+  public static final int GRAVITY_RIGHT = 3;
+
+  public static final int GRAVITY_TOP = 4;
+  public static final int GRAVITY_BOTTOM = 5;
+
+  private static final int SPACING_NONE = -1;
+
+  // horizontal
+  private int availableWidth;
+  private List<List<Integer>> lineChildIndex;
+  private List<Integer> lineHeightList;
+  private List<Integer> lineWidthList;
+  private int currentLineWidth = 0;
+  private int currentLineHeight = 0;
+  private int maxWidth = 0;
+  private List<Integer> currentLineChildIndex;
+
+  // vertical
+  private int availableHeight;
+  private List<List<Integer>> rowChildIndex;
+  private List<Integer> rowWidthList;
+  private List<Integer> rowHeightList;
+  private int currentRowWidth = 0;
+  private int currentRowHeight = 0;
+  private int maxHeight = 0;
+  private List<Integer> currentRowChildIndex;
+
+  // common
+  private List<Integer> weightChildList;
+  private float totalWeight = 0f;
   private int orientation = ORIENTATION_HORIZONTAL;
+  private int gravity = GRAVITY_NONE;
+  private int lineNum = FlowLayoutParam.LINE_NUM_INVALID;
+  public int horizontalSpacing = 0;
+  public int verticalSpacing = 0;
+
   // variable for efficient mode
   /**
    * flag whether child placing more efficient ,
@@ -68,7 +107,12 @@ public class FlowLayout extends ViewGroup {
     TypedArray a =
         context.obtainStyledAttributes(attributeSet, R.styleable.FlowLayout, defStyle, 0);
     try {
-      orientation = a.getInt(R.styleable.FlowLayout_flow_orientation, ORIENTATION_HORIZONTAL);
+      orientation = a.getInt(R.styleable.FlowLayout_orientation, ORIENTATION_HORIZONTAL);
+      gravity = a.getInt(R.styleable.FlowLayout_gravity, GRAVITY_NONE);
+      verticalSpacing =
+          a.getDimensionPixelSize(R.styleable.FlowLayout_verticalSpacing, SPACING_NONE);
+      horizontalSpacing =
+          a.getDimensionPixelSize(R.styleable.FlowLayout_horizontalSpacing, SPACING_NONE);
       // efficientMode = a.getBoolean(R.styleable.FlowLayout_flow_efficient_mode, false);
     } finally {
       a.recycle();
@@ -96,24 +140,23 @@ public class FlowLayout extends ViewGroup {
   }
 
   private void measureHorizontally(int widthMeasureSpec, int heightMeasureSpec) {
-    int widthSize = MeasureSpec.getSize(widthMeasureSpec) - getPaddingLeft() - getPaddingRight();
-    int heightSize = MeasureSpec.getSize(heightMeasureSpec) - getPaddingTop() - getPaddingBottom();
+    int widthSize = MeasureSpec.getSize(widthMeasureSpec);
+    int heightSize = MeasureSpec.getSize(heightMeasureSpec);
     int widthMode = MeasureSpec.getMode(widthMeasureSpec);
     int heightMode = MeasureSpec.getMode(heightMeasureSpec);
-    int availableWidth = widthSize - getPaddingLeft() - getPaddingRight();
+    availableWidth = widthSize - getPaddingLeft() - getPaddingRight();
     /**
      * two kind of type should be taken into account:
      * 1. dimen = 0 && weight !=0
      * 2. MATCH_PARENT
      */
-    List<List<Integer>> lineChildIndex = new ArrayList<List<Integer>>();
-    List<Integer> lineHeight = new ArrayList<Integer>();
-    int currentLineWidth = 0;
-    int currentLineHeight = 0;
-    float totalWeight = 0f;
-    int maxWidth = 0;
-    List<Integer> currentLineChildIndex = new ArrayList<Integer>();
-    List<Integer> weightChildList = new ArrayList<Integer>();
+    lineChildIndex = new ArrayList<List<Integer>>();
+    lineHeightList = new ArrayList<Integer>();
+    lineWidthList = new ArrayList<Integer>();
+    weightChildList = new ArrayList<Integer>();
+    maxWidth = 0;
+    lineNum = FlowLayoutParam.LINE_NUM_INVALID;
+    newLine();
     for (int i = 0; i < getChildCount(); i++) {
       View child = getChildAt(i);
       FlowLayoutParam lp = (FlowLayoutParam) child.getLayoutParams();
@@ -121,102 +164,124 @@ public class FlowLayout extends ViewGroup {
       int childWidthMode = MeasureSpec.EXACTLY;
       int childHeightMode = MeasureSpec.EXACTLY;
 
-      int childWidthSize = widthSize;
-      int childHeightSize = heightSize;
+      int childWidthSize = lp.width;
+      int childHeightSize = lp.height;
 
-      if (lp.height > 0) {
-        childHeightSize = lp.height;
-      } else if (heightMode == MeasureSpec.UNSPECIFIED) {
+      int childHorizontalSpacing = getChildHorizontalSpacing(child);
+      int childVerticalSpacing = getChildVerticalSpacing(child);
+
+      if (heightMode == MeasureSpec.UNSPECIFIED && childHeightSize == 0) {
         childHeightMode = MeasureSpec.UNSPECIFIED;
-        childHeightSize = 0;
       }
+      if (lp.lineNum != lineNum) {
+        endLine(availableWidth - currentLineWidth);
+        newLine();
+        lineNum = lp.lineNum;
+      }
+
       if (lp.width == LayoutParams.MATCH_PARENT) {
-        if (currentLineWidth + lp.leftMargin + lp.width + lp.rightMargin <= availableWidth) {
-          currentLineChildIndex.add(i);
+        if (currentLineWidth + lp.leftMargin + lp.rightMargin + childHorizontalSpacing <= availableWidth) {
           // take place all the extra spacing
-          childWidthSize = availableWidth - currentLineWidth - lp.leftMargin - lp.rightMargin;
+          childWidthSize =
+              availableWidth - currentLineWidth - lp.leftMargin - lp.rightMargin
+                  - childHorizontalSpacing;
+          currentLineChildIndex.add(i);
+          currentLineWidth = widthSize - getPaddingRight();
+          // child with WRAP_CONTENT has been measured
+          if (lp.width != LayoutParams.WRAP_CONTENT) {
+            child.measure(MeasureSpec.makeMeasureSpec(childWidthSize, childWidthMode),
+                MeasureSpec.makeMeasureSpec(childHeightSize, childHeightMode));
+            childWidthSize = child.getMeasuredWidth();
+            childHeightSize = child.getMeasuredHeight();
+          }
+          // set line height after measure ,in case that height is WRAP_CONTENT
           currentLineHeight =
-              Math.max(currentLineHeight, childHeightSize + lp.topMargin + lp.bottomMargin);
+              Math.max(currentLineHeight, childHeightSize + lp.topMargin + lp.bottomMargin
+                  + childVerticalSpacing);
 
           // end last line
-          /**
-           * when every line ends , child in weight list will be calculated
-           */
-          measureWeightChildHorizontal(weightChildList, 0, totalWeight);
-          lineChildIndex.add(currentLineChildIndex);
-          lineHeight.add(currentLineHeight);
-          // new line
-          currentLineChildIndex = new ArrayList<Integer>();
-          currentLineHeight = 0;
-          currentLineWidth = 0;
-          totalWeight = 0;
+          endLine(0);
+          newLine();
         } else {
           // end last line
-          measureWeightChildHorizontal(weightChildList, 0, totalWeight);
-          lineChildIndex.add(currentLineChildIndex);
-          lineHeight.add(currentLineHeight);
-          // take new line
-          currentLineChildIndex = new ArrayList<Integer>();
-          currentLineHeight = 0;
+          endLine(0);
+          newLine();
+          childWidthSize = availableWidth - lp.leftMargin - lp.rightMargin - childHorizontalSpacing;
           currentLineChildIndex.add(i);
+          currentLineWidth = widthSize - getPaddingRight();
+          // child with WRAP_CONTENT has been measured
+          if (lp.width != LayoutParams.WRAP_CONTENT) {
+            child.measure(MeasureSpec.makeMeasureSpec(childWidthSize, childWidthMode),
+                MeasureSpec.makeMeasureSpec(childHeightSize, childHeightMode));
+            childWidthSize = child.getMeasuredWidth();
+            childHeightSize = child.getMeasuredHeight();
+          }
+          // set line height after measure ,in case that height is WRAP_CONTENT
           currentLineHeight =
-              Math.max(currentLineHeight, childHeightSize + lp.topMargin + lp.bottomMargin);
-          childWidthSize =
-              availableWidth - lp.leftMargin - lp.rightMargin;
-          lineHeight.add(currentLineHeight);
-          // new line
-          currentLineChildIndex = new ArrayList<Integer>();
-          currentLineHeight = 0;
-          currentLineWidth = 0;
-          totalWeight = 0;
-          currentLineChildIndex.add(i);
+              Math.max(currentLineHeight, childHeightSize + lp.topMargin + lp.bottomMargin
+                  + childVerticalSpacing);
+          endLine(0);
+          newLine();
         }
       } else if (lp.width == 0 && lp.weight != 0) {
         // add to weight child list ,waiting for measure when whole line end ,so it will has extra
         // place to be placed
-        currentLineHeight =
-            Math.max(currentLineHeight, childHeightSize + lp.topMargin + lp.bottomMargin);
-        currentLineChildIndex.add(i);
         totalWeight += lp.weight;
         weightChildList.add(i);
-        continue;
+        currentLineChildIndex.add(i);
       } else {
-        if (currentLineWidth + lp.leftMargin + lp.width + lp.rightMargin <= availableWidth) {
+        if (childWidthSize == LayoutParams.WRAP_CONTENT) {
+          child.measure(MeasureSpec.makeMeasureSpec(childWidthSize, childWidthMode),
+              MeasureSpec.makeMeasureSpec(childHeightSize, childHeightMode));
+          childWidthSize = child.getMeasuredWidth();
+          childHeightSize = child.getMeasuredHeight();
+        }
+
+        if (currentLineWidth + lp.leftMargin + childWidthSize + lp.rightMargin
+            + childHorizontalSpacing <= availableWidth) {
           // current line
           currentLineChildIndex.add(i);
-          childWidthSize = lp.width;
-          currentLineHeight =
-              Math.max(currentLineHeight, childHeightSize + lp.topMargin + lp.bottomMargin);
-          currentLineWidth += lp.width + lp.leftMargin + lp.rightMargin;
-          maxWidth = Math.max(currentLineWidth, maxWidth);
+          currentLineWidth +=
+              childWidthSize + lp.leftMargin + lp.rightMargin + childHorizontalSpacing;
+          // child with WRAP_CONTENT has been measured
+          if (lp.width != LayoutParams.WRAP_CONTENT) {
+            child.measure(MeasureSpec.makeMeasureSpec(childWidthSize, childWidthMode),
+                MeasureSpec.makeMeasureSpec(childHeightSize, childHeightMode));
+            childWidthSize = child.getMeasuredWidth();
+            childHeightSize = child.getMeasuredHeight();
+          }
+          // set line height after measure ,in case that height is WRAP_CONTENT
+          if (childWidthSize + lp.leftMargin + lp.rightMargin != 0) {
+            currentLineHeight =
+                Math.max(currentLineHeight, childHeightSize + lp.topMargin + lp.bottomMargin
+                    + childVerticalSpacing);
+          }
         } else {
-          childWidthSize = lp.width;
           // end last line
-          measureWeightChildHorizontal(weightChildList, availableWidth - currentLineWidth,
-              totalWeight);
-          lineChildIndex.add(currentLineChildIndex);
-          lineHeight.add(currentLineHeight);
-          // new line
-          currentLineChildIndex = new ArrayList<Integer>();
-          currentLineHeight = 0;
-          currentLineChildIndex.add(i);
-          currentLineHeight =
-              Math.max(currentLineHeight, childHeightSize + lp.topMargin + lp.bottomMargin);
-          lineHeight.add(currentLineHeight);
+          endLine(availableWidth - currentLineWidth);
+          newLine();
 
-          currentLineWidth = lp.width + lp.leftMargin + lp.rightMargin;
-          maxWidth = Math.max(currentLineWidth, maxWidth);
+          currentLineChildIndex.add(i);
+          currentLineWidth =
+              childWidthSize + lp.leftMargin + lp.rightMargin + childHorizontalSpacing;
+          // child with WRAP_CONTENT has been measured
+          if (lp.width != LayoutParams.WRAP_CONTENT) {
+            child.measure(MeasureSpec.makeMeasureSpec(childWidthSize, childWidthMode),
+                MeasureSpec.makeMeasureSpec(childHeightSize, childHeightMode));
+            childWidthSize = child.getMeasuredWidth();
+            childHeightSize = child.getMeasuredHeight();
+          }
+          // set line height after measure ,in case that height is WRAP_CONTENT
+          currentLineHeight =
+              Math.max(currentLineHeight, childHeightSize + lp.topMargin + lp.bottomMargin
+                  + childVerticalSpacing);
         }
       }
 
-      child.measure(MeasureSpec.makeMeasureSpec(childWidthSize, childWidthMode),
-          MeasureSpec.makeMeasureSpec(childHeightSize, childHeightMode));
     }
 
     // end last line
-    measureWeightChildHorizontal(weightChildList, availableWidth - currentLineWidth, totalWeight);
-    lineChildIndex.add(currentLineChildIndex);
-    lineHeight.add(currentLineHeight);
+    endLine(availableWidth - currentLineWidth);
 
     /**
      * then set position for all child
@@ -224,24 +289,65 @@ public class FlowLayout extends ViewGroup {
     int totalHeight = getPaddingTop();
     for (int i = 0; i < lineChildIndex.size(); i++) {
       List<Integer> currentLineIndexList = lineChildIndex.get(i);
-      currentLineHeight = lineHeight.get(i);
-      currentLineWidth = getPaddingLeft();
-      for (int j = 0; j < currentLineIndexList.size(); j++) {
-        View child = getChildAt(currentLineIndexList.get(j));
+      currentLineHeight = lineHeightList.get(i);
+      int currentLineTotalWidth = lineWidthList.get(i);
+      switch (gravity) {
+        case GRAVITY_CENTER:
+          currentLineWidth = getPaddingLeft() + (availableWidth - currentLineTotalWidth) / 2;
+          break;
+        case GRAVITY_RIGHT:
+        case GRAVITY_BOTTOM:
+          currentLineWidth = getPaddingLeft() + (availableWidth - currentLineTotalWidth);
+          break;
+        default:
+          currentLineWidth = getPaddingLeft();
+          break;
+      }
+      for (int childIndex : currentLineIndexList) {
+        View child = getChildAt(childIndex);
         FlowLayoutParam lp = (FlowLayoutParam) child.getLayoutParams();
         int childWidth = child.getMeasuredWidth();
-        lp.top = totalHeight + lp.topMargin;
-        lp.left = currentLineWidth + lp.leftMargin;
+        lp.top = totalHeight + lp.topMargin + getChildVerticalSpacing(child) / 2;
+        lp.left = currentLineWidth + lp.leftMargin + getChildHorizontalSpacing(child) / 2;
 
         currentLineWidth += (lp.leftMargin + childWidth + lp.rightMargin);
       }
       totalHeight += currentLineHeight;
     }
 
-    setMeasuredDimension((widthMode == MeasureSpec.UNSPECIFIED || widthMode == MeasureSpec.AT_MOST)
-        ? maxWidth : widthSize,
+    int measuredWidth = (widthMode == MeasureSpec.UNSPECIFIED || widthMode == MeasureSpec.AT_MOST)
+        ? maxWidth + getPaddingRight() + getPaddingLeft() : widthSize;
+    int measuredHeight =
         (heightMode == MeasureSpec.UNSPECIFIED || heightMode == MeasureSpec.AT_MOST)
-            ? totalHeight : heightSize);
+            ? totalHeight + getPaddingBottom() : heightSize;
+
+    setMeasuredDimension(measuredWidth, measuredHeight);
+  }
+
+  private void endLine(int extraSpacing) {
+    /**
+     * when every line ends , child in weight list will be calculated
+     */
+    measureWeightChildHorizontal(weightChildList, extraSpacing,
+        totalWeight);
+    int currentLineTotalWidth = 0;
+    for (int childIndex : currentLineChildIndex) {
+      View child = getChildAt(childIndex);
+      currentLineTotalWidth += child.getMeasuredWidth();
+    }
+    lineWidthList.add(currentLineTotalWidth);
+    lineChildIndex.add(currentLineChildIndex);
+    lineHeightList.add(currentLineHeight);
+    maxWidth = Math.max(currentLineWidth, maxWidth);
+  }
+
+
+  private void newLine() {
+    // create new
+    currentLineChildIndex = new ArrayList<Integer>();
+    currentLineHeight = 0;
+    currentLineWidth = getPaddingLeft();
+    totalWeight = 0;
   }
 
   private void measureWeightChildHorizontal(List<Integer> weightChildList, int extraSpacing,
@@ -256,6 +362,10 @@ public class FlowLayout extends ViewGroup {
       int childWidthSize = (int) (lp.weight / totalWeight * extraSpacing);
       int childHeightSize = lp.height;
 
+      if (childWidthSize + lp.leftMargin + lp.rightMargin != 0) {
+        currentLineHeight =
+            Math.max(currentLineHeight, childHeightSize + lp.topMargin + lp.bottomMargin);
+      }
       weightChild.measure(MeasureSpec.makeMeasureSpec(childWidthSize, childWidthMode),
           MeasureSpec.makeMeasureSpec(childHeightSize, childHeightMode));
       weightChildList.remove(0);
@@ -264,20 +374,19 @@ public class FlowLayout extends ViewGroup {
 
 
   private void measureVertically(int widthMeasureSpec, int heightMeasureSpec) {
-    int widthSize = MeasureSpec.getSize(widthMeasureSpec) - getPaddingLeft() - getPaddingRight();
-    int heightSize = MeasureSpec.getSize(heightMeasureSpec) - getPaddingTop() - getPaddingBottom();
+    int widthSize = MeasureSpec.getSize(widthMeasureSpec);
+    int heightSize = MeasureSpec.getSize(heightMeasureSpec);
     int widthMode = MeasureSpec.getMode(widthMeasureSpec);
     int heightMode = MeasureSpec.getMode(heightMeasureSpec);
-    int availableHeight = heightSize - getPaddingTop() - getPaddingBottom();
+    availableHeight = heightSize - getPaddingTop() - getPaddingBottom();
 
-    List<List<Integer>> rowChildIndex = new ArrayList<List<Integer>>();
-    List<Integer> rowWidth = new ArrayList<Integer>();
-    int currentRowWidth = 0;
-    int currentRowHeight = 0;
-    float totalWeight = 0f;
-    int maxHeight = 0;
-    List<Integer> currentRowChildIndex = new ArrayList<Integer>();
-    List<Integer> weightChildList = new ArrayList<Integer>();
+    weightChildList = new ArrayList<Integer>();
+    rowChildIndex = new ArrayList<List<Integer>>();
+    rowWidthList = new ArrayList<Integer>();
+    rowHeightList = new ArrayList<Integer>();
+
+    maxHeight = 0;
+    newRow();
     for (int i = 0; i < getChildCount(); i++) {
       View child = getChildAt(i);
       FlowLayoutParam lp = (FlowLayoutParam) child.getLayoutParams();
@@ -285,102 +394,113 @@ public class FlowLayout extends ViewGroup {
       int childWidthMode = MeasureSpec.EXACTLY;
       int childHeightMode = MeasureSpec.EXACTLY;
 
-      int childWidthSize = widthSize;
-      int childHeightSize = heightSize;
+      int childWidthSize = lp.width;
+      int childHeightSize = lp.height;
 
-      if (lp.width > 0) {
-        childWidthSize = lp.width;
-      } else if (widthMode == MeasureSpec.UNSPECIFIED) {
+      int childHorizontalSpacing = getChildHorizontalSpacing(child);
+      int childVerticalSpacing = getChildVerticalSpacing(child);
+
+      if (widthMode == MeasureSpec.UNSPECIFIED && childWidthSize == 0) {
         childWidthMode = MeasureSpec.UNSPECIFIED;
-        childWidthSize = 0;
+      }
+      if (lp.lineNum != lineNum) {
+        endRow(availableHeight - currentRowHeight);
+        newRow();
+        lineNum = lp.lineNum;
       }
       if (lp.height == LayoutParams.MATCH_PARENT) {
-        if (currentRowHeight + lp.topMargin + lp.height + lp.bottomMargin <= availableHeight) {
-          currentRowChildIndex.add(i);
+        if (currentRowHeight + lp.topMargin + lp.height + lp.bottomMargin + childVerticalSpacing <= availableHeight) {
           // take place all the extra spacing
-          childHeightSize = availableHeight - currentRowHeight - lp.topMargin - lp.bottomMargin;
-          currentRowWidth =
-              Math.max(currentRowWidth, childWidthSize + lp.leftMargin + lp.rightMargin);
-
-          // end last row
-          /**
-           * when every row ends , child in weight list will be calculated
-           */
-          measureWeightChildVertically(weightChildList, 0, totalWeight);
-          rowChildIndex.add(currentRowChildIndex);
-          rowWidth.add(currentRowWidth);
-          // new row
-          currentRowChildIndex = new ArrayList<Integer>();
-          currentRowWidth = 0;
-          currentRowHeight = 0;
-          totalWeight = 0;
-        } else {
-          // end last row
-          measureWeightChildVertically(weightChildList, 0, totalWeight);
-          rowChildIndex.add(currentRowChildIndex);
-          rowWidth.add(currentRowWidth);
-          // take new row
-          currentRowChildIndex = new ArrayList<Integer>();
-          currentRowWidth = 0;
-          currentRowChildIndex.add(i);
-          currentRowWidth =
-              Math.max(currentRowWidth, childWidthSize + lp.leftMargin + lp.rightMargin);
           childHeightSize =
-              availableHeight - lp.topMargin - lp.bottomMargin;
-          rowWidth.add(currentRowWidth);
-          // new row
-          currentRowChildIndex = new ArrayList<Integer>();
-          currentRowWidth = 0;
-          currentRowHeight = 0;
-          totalWeight = 0;
+              availableHeight - currentRowHeight - lp.topMargin - lp.bottomMargin
+                  - childVerticalSpacing;
           currentRowChildIndex.add(i);
+          currentRowHeight = heightSize - getPaddingBottom();
+
+          if (lp.height != LayoutParams.WRAP_CONTENT) {
+            child.measure(MeasureSpec.makeMeasureSpec(childWidthSize, childWidthMode),
+                MeasureSpec.makeMeasureSpec(childHeightSize, childHeightMode));
+            childWidthSize = child.getMeasuredWidth();
+            childHeightSize = child.getMeasuredHeight();
+          }
+          currentRowWidth =
+              Math.max(currentRowWidth, childWidthSize + lp.leftMargin + lp.rightMargin
+                  + childHorizontalSpacing);
+          endRow(0);
+          newRow();
+        } else {
+          endRow(0);
+          newRow();
+
+          childHeightSize = availableHeight - lp.topMargin - lp.bottomMargin - childVerticalSpacing;
+          currentRowChildIndex.add(i);
+          currentRowHeight = heightSize - getPaddingBottom();
+          if (lp.height != LayoutParams.WRAP_CONTENT) {
+            child.measure(MeasureSpec.makeMeasureSpec(childWidthSize, childWidthMode),
+                MeasureSpec.makeMeasureSpec(childHeightSize, childHeightMode));
+            childWidthSize = child.getMeasuredWidth();
+            childHeightSize = child.getMeasuredHeight();
+          }
+          currentRowWidth =
+              Math.max(currentRowWidth, childWidthSize + lp.leftMargin + lp.rightMargin
+                  + childHorizontalSpacing);
+          endRow(0);
+          newRow();
         }
       } else if (lp.height == 0 && lp.weight != 0) {
         // add to weight child list ,waiting for measure when whole row end ,so it will has extra
         // place to be placed
-        currentRowWidth =
-            Math.max(currentRowWidth, childWidthSize + lp.leftMargin + lp.rightMargin);
         currentRowChildIndex.add(i);
         totalWeight += lp.weight;
         weightChildList.add(i);
-        continue;
       } else {
-        if (currentRowHeight + lp.topMargin + lp.height + lp.bottomMargin <= availableHeight) {
+        if (childHeightSize == LayoutParams.WRAP_CONTENT) {
+          child.measure(MeasureSpec.makeMeasureSpec(childWidthSize, childWidthMode),
+              MeasureSpec.makeMeasureSpec(childHeightSize, childHeightMode));
+          childWidthSize = child.getMeasuredWidth();
+          childHeightSize = child.getMeasuredHeight();
+        }
+        if (currentRowHeight + lp.topMargin + childHeightSize + lp.bottomMargin
+            + childVerticalSpacing <= availableHeight) {
           // current row
           currentRowChildIndex.add(i);
-          childHeightSize = lp.height;
-          currentRowWidth =
-              Math.max(currentRowWidth, childWidthSize + lp.leftMargin + lp.rightMargin);
-          currentRowHeight += lp.height + lp.topMargin + lp.bottomMargin;
-          maxHeight = Math.max(currentRowHeight, maxHeight);
-        } else {
-          childHeightSize = lp.height;
-          // end last row
-          measureWeightChildVertically(weightChildList, availableHeight - currentRowHeight,
-              totalWeight);
-          rowChildIndex.add(currentRowChildIndex);
-          rowWidth.add(currentRowWidth);
-          // new row
-          currentRowChildIndex = new ArrayList<Integer>();
-          currentRowWidth = 0;
-          currentRowChildIndex.add(i);
-          currentRowWidth =
-              Math.max(currentRowWidth, childWidthSize + lp.leftMargin + lp.rightMargin);
-          rowWidth.add(currentRowWidth);
+          currentRowHeight +=
+              childHeightSize + lp.topMargin + lp.bottomMargin + childVerticalSpacing;
 
-          currentRowHeight = lp.height + lp.topMargin + lp.bottomMargin;
-          maxHeight = Math.max(currentRowHeight, maxHeight);
+          if (lp.height != LayoutParams.WRAP_CONTENT) {
+            child.measure(MeasureSpec.makeMeasureSpec(childWidthSize, childWidthMode),
+                MeasureSpec.makeMeasureSpec(childHeightSize, childHeightMode));
+            childWidthSize = child.getMeasuredWidth();
+            childHeightSize = child.getMeasuredHeight();
+          }
+          if (childHeightSize + lp.topMargin + lp.bottomMargin != 0) {
+            currentRowWidth =
+                Math.max(currentRowWidth, childWidthSize + lp.leftMargin + lp.rightMargin
+                    + childHorizontalSpacing);
+          }
+
+        } else {
+          endRow(availableHeight - currentRowHeight);
+          newRow();
+
+          currentRowChildIndex.add(i);
+          currentRowHeight =
+              childHeightSize + lp.topMargin + lp.bottomMargin + childVerticalSpacing;
+
+          if (lp.height != LayoutParams.WRAP_CONTENT) {
+            child.measure(MeasureSpec.makeMeasureSpec(childWidthSize, childWidthMode),
+                MeasureSpec.makeMeasureSpec(childHeightSize, childHeightMode));
+            childWidthSize = child.getMeasuredWidth();
+            childHeightSize = child.getMeasuredHeight();
+          }
+          currentRowWidth =
+              Math.max(currentRowWidth, childWidthSize + lp.leftMargin + lp.rightMargin
+                  + childHorizontalSpacing);
         }
       }
-
-      child.measure(MeasureSpec.makeMeasureSpec(childWidthSize, childWidthMode),
-          MeasureSpec.makeMeasureSpec(childHeightSize, childHeightMode));
-
     }
     // end last row
-    measureWeightChildVertically(weightChildList, availableHeight - currentRowHeight, totalWeight);
-    rowChildIndex.add(currentRowChildIndex);
-    rowWidth.add(currentRowWidth);
+    endRow(availableHeight - currentRowHeight);
 
     /**
      * then set position for all child
@@ -388,14 +508,28 @@ public class FlowLayout extends ViewGroup {
     int totalWidth = getPaddingLeft();
     for (int i = 0; i < rowChildIndex.size(); i++) {
       List<Integer> currentRowIndexList = rowChildIndex.get(i);
-      currentRowWidth = rowWidth.get(i);
-      currentRowHeight = getPaddingTop();
-      for (int j = 0; j < currentRowIndexList.size(); j++) {
-        View child = getChildAt(currentRowIndexList.get(j));
+      currentRowWidth = rowWidthList.get(i);
+
+      int currentRowTotalHeight = rowHeightList.get(i);
+      switch (gravity) {
+        case GRAVITY_CENTER:
+          currentRowHeight = getPaddingTop() + (availableHeight - currentRowTotalHeight) / 2;
+          break;
+        case GRAVITY_RIGHT:
+        case GRAVITY_BOTTOM:
+          currentRowHeight = getPaddingTop() + (availableHeight - currentRowTotalHeight);
+          break;
+        default:
+          currentRowHeight = getPaddingTop();
+          break;
+      }
+
+      for (int childIndex : currentRowIndexList) {
+        View child = getChildAt(childIndex);
         FlowLayoutParam lp = (FlowLayoutParam) child.getLayoutParams();
         int childHeight = child.getMeasuredHeight();
-        lp.top = currentRowHeight + lp.topMargin;
-        lp.left = totalWidth + lp.leftMargin;
+        lp.top = currentRowHeight + lp.topMargin + getChildVerticalSpacing(child) / 2;
+        lp.left = totalWidth + lp.leftMargin + getChildHorizontalSpacing(child) / 2;
 
         currentRowHeight += (lp.topMargin + childHeight + lp.bottomMargin);
       }
@@ -403,12 +537,33 @@ public class FlowLayout extends ViewGroup {
     }
 
     setMeasuredDimension((widthMode == MeasureSpec.UNSPECIFIED || widthMode == MeasureSpec.AT_MOST)
-        ? totalWidth : widthSize,
+        ? totalWidth + getPaddingRight() : widthSize,
         (heightMode == MeasureSpec.UNSPECIFIED || heightMode == MeasureSpec.AT_MOST)
-            ? maxHeight : heightSize);
+            ? maxHeight + getPaddingLeft() + getPaddingBottom() : heightSize);
   }
 
+  private void endRow(int extraSpacing) {
+    // end last row
+    measureWeightChildVertically(weightChildList, extraSpacing, totalWeight);
+    int currentRowTotalHeight = 0;
+    for (int childIndex : currentRowChildIndex) {
+      View child = getChildAt(childIndex);
+      currentRowTotalHeight += child.getMeasuredHeight();
+    }
+    rowHeightList.add(currentRowTotalHeight);
 
+    rowChildIndex.add(currentRowChildIndex);
+    rowWidthList.add(currentRowWidth);
+    maxHeight = Math.max(currentRowHeight, maxHeight);
+  }
+
+  private void newRow() {
+    // take new row
+    currentRowChildIndex = new ArrayList<Integer>();
+    currentRowWidth = 0;
+    currentRowHeight = getPaddingTop();
+    totalWeight = 0;
+  }
 
   private void measureWeightChildVertically(List<Integer> weightChildList, int extraSpacing,
       float totalWeight) {
@@ -417,11 +572,15 @@ public class FlowLayout extends ViewGroup {
       View weightChild = getChildAt(childIndex);
       FlowLayoutParam lp = (FlowLayoutParam) weightChild.getLayoutParams();
 
-      int childWidthMode = MeasureSpec.AT_MOST;
-      int childHeightMode = MeasureSpec.AT_MOST;
+      int childWidthMode = MeasureSpec.EXACTLY;
+      int childHeightMode = MeasureSpec.EXACTLY;
       int childHeightSize = (int) (lp.weight / totalWeight * extraSpacing);
       int childWidthSize = lp.width;
 
+      if (childHeightSize + lp.topMargin + lp.bottomMargin != 0) {
+        currentRowWidth =
+            Math.max(currentRowWidth, childWidthSize + lp.leftMargin + lp.rightMargin);
+      }
       weightChild.measure(MeasureSpec.makeMeasureSpec(childWidthSize, childWidthMode),
           MeasureSpec.makeMeasureSpec(childHeightSize, childHeightMode));
       weightChildList.remove(0);
@@ -441,10 +600,38 @@ public class FlowLayout extends ViewGroup {
       }
       FlowLayoutParam lp = (FlowLayoutParam) child.getLayoutParams();
 
-      int left = getPaddingLeft() + lp.left;
-      int top = getPaddingTop() + lp.top;
+      int left = lp.left;
+      int top = lp.top;
       child.layout(left, top, left + child.getMeasuredWidth(), top + child.getMeasuredHeight());
     }
+  }
+
+  public void setGravity(int gravity) {
+    boolean changed = gravity == this.gravity;
+    this.gravity = gravity;
+    if (changed) {
+      requestLayout();
+    }
+  }
+
+  private int getChildHorizontalSpacing(View child) {
+    FlowLayoutParam lp = (FlowLayoutParam) child.getLayoutParams();
+    int childHorizontalSpacing = horizontalSpacing == SPACING_NONE ? 0 : horizontalSpacing;
+
+    childHorizontalSpacing =
+        lp.horizontalSpacing == SPACING_NONE ? childHorizontalSpacing : lp.horizontalSpacing;
+    return childHorizontalSpacing;
+  }
+
+
+
+  private int getChildVerticalSpacing(View child) {
+    FlowLayoutParam lp = (FlowLayoutParam) child.getLayoutParams();
+    int childVerticalSpacing = verticalSpacing == SPACING_NONE ? 0 : verticalSpacing;
+
+    childVerticalSpacing =
+        lp.verticalSpacing == SPACING_NONE ? childVerticalSpacing : lp.verticalSpacing;
+    return childVerticalSpacing;
   }
 
   @Override
@@ -462,9 +649,13 @@ public class FlowLayout extends ViewGroup {
     return new FlowLayoutParam(getContext(), attrs);
   }
 
-  public class FlowLayoutParam extends MarginLayoutParams {
+  public static class FlowLayoutParam extends MarginLayoutParams {
 
+    public static final int LINE_NUM_INVALID = Integer.MIN_VALUE;
     public float weight = -1;
+    public int lineNum = LINE_NUM_INVALID;
+    public int horizontalSpacing = 0;
+    public int verticalSpacing = 0;
     public int left = -1;
     public int top = -1;
 
@@ -478,7 +669,12 @@ public class FlowLayout extends ViewGroup {
       TypedArray a = context.obtainStyledAttributes(attributeSet,
           R.styleable.FlowLayout, 0, 0);
       try {
-        weight = a.getInt(R.styleable.FlowLayout_flow_weight, 0);
+        weight = a.getInt(R.styleable.FlowLayout_weight, 0);
+        lineNum = a.getInt(R.styleable.FlowLayout_lineNum, LINE_NUM_INVALID);
+        horizontalSpacing =
+            a.getDimensionPixelSize(R.styleable.FlowLayout_childHorizontalSpacing, SPACING_NONE);
+        verticalSpacing =
+            a.getDimensionPixelSize(R.styleable.FlowLayout_childVerticalSpacing, SPACING_NONE);
       } finally {
         a.recycle();
       }

@@ -1,9 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="app_name">FlowLayoutExample</string>
+    <string name="title_activity_example">FlowLayoutExample</string>
 
-    <string name="app_name">FlowLayout</string>
-    <string name="title_activity_example">ExampleActivity</string>
-    <string name="hello_world">Hello world!</string>
-    <string name="action_settings">Settings</string>
+    <string name="normal_mode">normal mode</string>
+    <string name="gravity_weight">gravity and weight</string>
+    <string name="line_num">with line number</string>
+    <string name="crazy_mode">crazy mode</string>
+
+    <string name="this_is_normal_mode">this is normal mode</string>
+    <string name="button">button</string>
+    <string name="nested_flow_layout">nested flow layout</string>
+    <string name="view">View</string>
+
+    <string name="gravity_left">gravity left</string>
+    <string name="gravity_center">gravity center</string>
+    <string name="gravity_right">gravity right</string>
+    <string name="gravity_top">gravity top</string>
+    <string name="gravity_bottom">gravity bottom</string>
+
+    <string name="divide_line">divide line</string>
+
+    <string name="weight_1">weight = 1</string>
+    <string name="weight_2">weight = 2</string>
+    <string name="weight_3">weight = 3</string>
+
+    <string name="it_is_amazing_function">it\'s a amazing function</string>
+    <string name="description">if you want to create multiple lines ,and some lines divide into several equal part this function will be really helpful </string>
+
+    <string name="weight_1_line_num_2">line number :2 \n weight :1</string>
+    <string name="weight_1_line_num_3">line number :3 \n weight :1</string>
+    <string name="weight_2_line_num_3">line number :3 \n weight :2</string>
 
 </resources>

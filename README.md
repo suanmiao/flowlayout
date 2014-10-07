@@ -2,19 +2,20 @@
 
 ## Introduction
 
-  Enhanced LinearLayout , child will auto flow when there is no enough space in current line.
-Also , you can be more efficient when you want to develop some layout pattern (see "Demonstration" for more detail )
+Android FlowLayout is an enhanced LinearLayout, in which child elements will automatically flow when there is not enough space in current line.
+
+Android FlowLayout gives you more efficiency when you want to develop some layout pattern. (see "Demonstration" for details)
 
 ![](https://github.com/suanmiao/flowlayout/raw/master/imgs/normal_mode.png)
 
 ## Demonstration
 
-###1.orientation
+### 1. Orientation
 
 child will be place in specific orientation , horizontal or vertical
 when there is no enough space for more child , it will be placed in  another line
 
-###2.weight###
+### 2. Weight###
 
 child with parameter "weight" will share the rest of space in current line
 > notes:
@@ -22,7 +23,7 @@ child with parameter "weight" will share the rest of space in current line
 > when you use "weight" ,please ensure that "width"/"height" is zero
 > only children in same line can share rest of space on current line
 
-###3.gravity###
+### 3. Gravity###
 
 child can be placed in different gravity. for example when orientation is horizontal ,
 children can be placed from left or right edge flow layout
@@ -34,14 +35,14 @@ children can be placed from left or right edge flow layout
 > "gravity=left" in horizontal mode equals "gravity=top" in horizontal mode
 > "gravity=right" in horizontal mode equals "gravity=bottom" in horizontal mode
 
-###4.line number###
+### 4.Line number###
 
-this is a amazing function !
-when you want to create layout that kind:
+This is amazing!
+When you want to create layout like this:
 
 ![](https://github.com/suanmiao/flowlayout/raw/master/imgs/line_number_usage.png)
 
-if you use LinearLayout,you should write code:
+Old school way, using LinearLayout:
 
     <LinearLayout
         android:orientation="vertical"
@@ -84,7 +85,7 @@ if you use LinearLayout,you should write code:
         </LinearLayout>
     </LinearLayout>
 
-but when you use FlowLayout with line number,it's much more easier!
+Using FlowLayout(much easier!):
 
     <com.suan.flowlayout.FlowLayout
         android:orientation="horizontal"
@@ -123,11 +124,11 @@ but when you use FlowLayout with line number,it's much more easier!
 
 ## Usage
 
-sample usage:
+Sample usage:
 
-1.include this as module in your project
+1. Include this repo as module in your project
 
-2.use this layout like this
+2. Use layout like this
 
         <com.suan.flowlayout.FlowLayout
             flow:orientation="horizontal"
@@ -147,61 +148,60 @@ sample usage:
 
 ## Parameters
 
-if you want to use custom attribute of FlowLayout
-you should define the name space first:
+If you want to use custom attribute of FlowLayout, you should define the namespace first:
 
-xmlns:f="http://schemas.android.com/apk/res/your.namespace"
+    xmlns:f="http://schemas.android.com/apk/res/your.namespace"
 
 or
 
-xmlns:flow="http://schemas.android.com/apk/res-auto"
+    xmlns:flow="http://schemas.android.com/apk/res-auto"
 
 then you can use custom attribute below
 
-###1.layout parameters
+### 1. Layout parameters
 
-####flow:orientation
+#### flow:orientation
 
 > specific child orientation for this layout "horizontal" or "vertical"
 > default value is "horizontal"
 
-####flow:gravity
+#### flow:gravity
 
 > specific child gravity for this layout "left"/"top" or "right"/"bottom"
 > default value is "left"/"top"
 
-####flow:horizontalSpacing
+#### flow:horizontalSpacing
 
 > specific child spacing for this layout , spacing between child horizontally
 > default value is "0"
 
-####flow:verticalSpacing
+#### flow:verticalSpacing
 
 > specific child spacing for this layout , spacing between child vertically
 > default value is "0"
 
-###2.child layout parameters
+### 2. Child layout parameters
 
-####flow:weight
+#### flow:weight
 
 > set weight for this child ,and child with attribute "weight" in same line will share the rest of space according to weight
 
-####flow:childHorizontalSpacing
+#### flow:childHorizontalSpacing
 
 > same function as "horizontalSpacing" ,but this will only has effect on this child
 
-####flow:childVerticalSpacing
+#### flow:childVerticalSpacing
 
 > same function as "verticalSpacing" ,but this will only has effect on this child
 
-####flow:lineNum
+#### flow:lineNum
 
 > specific line number for this child
 
 > notes:
 > same line number does't always means same line or row ,only if there are coherent and space is enough
 
-## Copyrights
+## Copyright
 
 Copyright 2014, suanmiao
 

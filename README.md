@@ -2,7 +2,7 @@
 
 ## Introduction
 
-  Enhanced LinearLayout , child will auto flow when there is no enough space in current line
+  Enhanced LinearLayout , child will auto flow when there is no enough space in current line.
 Also , you can be more efficient when you want to develop some layout pattern (see "Demonstration" for more detail )
 
 ![](https://github.com/suanmiao/flowlayout/raw/master/imgs/normal_mode.png)
@@ -17,7 +17,7 @@ when there is no enough space for more child , it will be placed in  another lin
 ###2.weight###
 
 child with parameter "weight" will share the rest of space in current line
-> notice:
+> notes:
 
 > when you use "weight" ,please ensure that "width"/"height" is zero
 > only children in same line can share rest of space on current line
@@ -29,7 +29,7 @@ children can be placed from left or right edge flow layout
 
 ![](https://github.com/suanmiao/flowlayout/raw/master/imgs/gravity_weight.png)
 
-> notice:
+> notes:
 
 > "gravity=left" in horizontal mode equals "gravity=top" in horizontal mode
 > "gravity=right" in horizontal mode equals "gravity=bottom" in horizontal mode
@@ -125,6 +125,10 @@ but when you use FlowLayout with line number,it's much more easier!
 
 sample usage:
 
+1.include this as module in your project
+
+2.use this layout like this
+
         <com.suan.flowlayout.FlowLayout
             flow:orientation="horizontal"
             flow:gravity="left"
@@ -156,46 +160,45 @@ then you can use custom attribute below
 
 ###1.layout parameters
 
-flow:orientation
+####flow:orientation
 
 > specific child orientation for this layout "horizontal" or "vertical"
 > default value is "horizontal"
 
-flow:gravity
+####flow:gravity
 
 > specific child gravity for this layout "left"/"top" or "right"/"bottom"
 > default value is "left"/"top"
 
-flow:horizontalSpacing
+####flow:horizontalSpacing
 
 > specific child spacing for this layout , spacing between child horizontally
 > default value is "0"
 
-flow:verticalSpacing
+####flow:verticalSpacing
 
 > specific child spacing for this layout , spacing between child vertically
 > default value is "0"
 
 ###2.child layout parameters
 
-flow:weight
+####flow:weight
 
 > set weight for this child ,and child with attribute "weight" in same line will share the rest of space according to weight
 
-flow:childHorizontalSpacing
+####flow:childHorizontalSpacing
 
 > same function as "horizontalSpacing" ,but this will only has effect on this child
 
-flow:childVerticalSpacing
+####flow:childVerticalSpacing
 
 > same function as "verticalSpacing" ,but this will only has effect on this child
 
-flow:lineNum
+####flow:lineNum
 
 > specific line number for this child
 
-> notice:
-
+> notes:
 > same line number does't always means same line or row ,only if there are coherent and space is enough
 
 ## Copyrights

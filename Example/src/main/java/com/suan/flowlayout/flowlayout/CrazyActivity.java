@@ -69,8 +69,8 @@ public class CrazyActivity extends Activity {
         int width = (int) (Math.random() * 400f);
         int height = getResources().getDimensionPixelSize(R.dimen.child_height);
         textView.setTextSize(Math.min(width, height) / 4);
-        FlowLayout.FlowLayoutParam param =
-            new FlowLayout.FlowLayoutParam(width, height);
+        FlowLayout.LayoutParam param =
+            new FlowLayout.LayoutParam(width, height);
         textView.setScaleX(0f);
         textView.animate().scaleX(1f).setDuration(700).start();
         mFlowLayout.addView(textView, param);

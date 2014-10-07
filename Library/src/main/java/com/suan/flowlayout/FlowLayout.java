@@ -20,7 +20,6 @@ import java.util.List;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -28,7 +27,7 @@ import android.view.ViewGroup;
  * Created by suanmiao on 14-10-3.
  * function for this class:
  * ensure a container for type display that child can flow both horizontal and vertical,
- * more flexiable than LinearLayout
+ * more flexible than LinearLayout
  * also ,I want to make it more smart in placing in child , more efficient in child placing
  *
  * target for this layout is every child can take as much place it wants
@@ -78,7 +77,7 @@ public class FlowLayout extends ViewGroup {
   private float totalWeight = 0f;
   private int orientation = ORIENTATION_HORIZONTAL;
   private int gravity = GRAVITY_NONE;
-  private int lineNum = FlowLayoutParam.LINE_NUM_INVALID;
+  private int lineNum = LayoutParam.LINE_NUM_INVALID;
   public int horizontalSpacing = 0;
   public int verticalSpacing = 0;
 
@@ -103,7 +102,6 @@ public class FlowLayout extends ViewGroup {
   }
 
   private void initAttr(Context context, AttributeSet attributeSet, int defStyle) {
-
     TypedArray a =
         context.obtainStyledAttributes(attributeSet, R.styleable.FlowLayout, defStyle, 0);
     try {
@@ -113,19 +111,11 @@ public class FlowLayout extends ViewGroup {
           a.getDimensionPixelSize(R.styleable.FlowLayout_verticalSpacing, SPACING_NONE);
       horizontalSpacing =
           a.getDimensionPixelSize(R.styleable.FlowLayout_horizontalSpacing, SPACING_NONE);
-      // efficientMode = a.getBoolean(R.styleable.FlowLayout_flow_efficient_mode, false);
     } finally {
       a.recycle();
     }
   }
 
-  /**
-   * meaning of "weight" and "MATCH_PARENT":
-   * 1. "weight":works when there is extra space in parent , and the value decide the percent
-   * that child can take
-   * 2. "MATCH_PARENT": means that the view wants to be as big as its parent
-   * >>> so the order for space allocate is : normal/MATCH_PARENT then weight
-   */
   @Override
   protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
     super.onMeasure(widthMeasureSpec, heightMeasureSpec);
@@ -155,11 +145,11 @@ public class FlowLayout extends ViewGroup {
     lineWidthList = new ArrayList<Integer>();
     weightChildList = new ArrayList<Integer>();
     maxWidth = 0;
-    lineNum = FlowLayoutParam.LINE_NUM_INVALID;
+    lineNum = LayoutParam.LINE_NUM_INVALID;
     newLine();
     for (int i = 0; i < getChildCount(); i++) {
       View child = getChildAt(i);
-      FlowLayoutParam lp = (FlowLayoutParam) child.getLayoutParams();
+      LayoutParam lp = (LayoutParam) child.getLayoutParams();
 
       int childWidthMode = MeasureSpec.EXACTLY;
       int childHeightMode = MeasureSpec.EXACTLY;
@@ -283,9 +273,7 @@ public class FlowLayout extends ViewGroup {
     // end last line
     endLine(availableWidth - currentLineWidth);
 
-    /**
-     * then set position for all child
-     */
+    // then set position for all child
     int totalHeight = getPaddingTop();
     for (int i = 0; i < lineChildIndex.size(); i++) {
       List<Integer> currentLineIndexList = lineChildIndex.get(i);
@@ -305,7 +293,7 @@ public class FlowLayout extends ViewGroup {
       }
       for (int childIndex : currentLineIndexList) {
         View child = getChildAt(childIndex);
-        FlowLayoutParam lp = (FlowLayoutParam) child.getLayoutParams();
+        LayoutParam lp = (LayoutParam) child.getLayoutParams();
         int childWidth = child.getMeasuredWidth();
         lp.top = totalHeight + lp.topMargin + getChildVerticalSpacing(child) / 2;
         lp.left = currentLineWidth + lp.leftMargin + getChildHorizontalSpacing(child) / 2;
@@ -325,9 +313,7 @@ public class FlowLayout extends ViewGroup {
   }
 
   private void endLine(int extraSpacing) {
-    /**
-     * when every line ends , child in weight list will be calculated
-     */
+    // when every line ends , child in weight list will be calculated
     measureWeightChildHorizontal(weightChildList, extraSpacing,
         totalWeight);
     int currentLineTotalWidth = 0;
@@ -340,7 +326,6 @@ public class FlowLayout extends ViewGroup {
     lineHeightList.add(currentLineHeight);
     maxWidth = Math.max(currentLineWidth, maxWidth);
   }
-
 
   private void newLine() {
     // create new
@@ -355,7 +340,7 @@ public class FlowLayout extends ViewGroup {
     while (weightChildList.size() > 0) {
       int childIndex = weightChildList.get(0);
       View weightChild = getChildAt(childIndex);
-      FlowLayoutParam lp = (FlowLayoutParam) weightChild.getLayoutParams();
+      LayoutParam lp = (LayoutParam) weightChild.getLayoutParams();
 
       int childWidthMode = MeasureSpec.EXACTLY;
       int childHeightMode = MeasureSpec.EXACTLY;
@@ -371,7 +356,6 @@ public class FlowLayout extends ViewGroup {
       weightChildList.remove(0);
     }
   }
-
 
   private void measureVertically(int widthMeasureSpec, int heightMeasureSpec) {
     int widthSize = MeasureSpec.getSize(widthMeasureSpec);
@@ -389,7 +373,7 @@ public class FlowLayout extends ViewGroup {
     newRow();
     for (int i = 0; i < getChildCount(); i++) {
       View child = getChildAt(i);
-      FlowLayoutParam lp = (FlowLayoutParam) child.getLayoutParams();
+      LayoutParam lp = (LayoutParam) child.getLayoutParams();
 
       int childWidthMode = MeasureSpec.EXACTLY;
       int childHeightMode = MeasureSpec.EXACTLY;
@@ -478,7 +462,6 @@ public class FlowLayout extends ViewGroup {
                 Math.max(currentRowWidth, childWidthSize + lp.leftMargin + lp.rightMargin
                     + childHorizontalSpacing);
           }
-
         } else {
           endRow(availableHeight - currentRowHeight);
           newRow();
@@ -502,9 +485,8 @@ public class FlowLayout extends ViewGroup {
     // end last row
     endRow(availableHeight - currentRowHeight);
 
-    /**
-     * then set position for all child
-     */
+    // then set position for all child
+
     int totalWidth = getPaddingLeft();
     for (int i = 0; i < rowChildIndex.size(); i++) {
       List<Integer> currentRowIndexList = rowChildIndex.get(i);
@@ -526,7 +508,7 @@ public class FlowLayout extends ViewGroup {
 
       for (int childIndex : currentRowIndexList) {
         View child = getChildAt(childIndex);
-        FlowLayoutParam lp = (FlowLayoutParam) child.getLayoutParams();
+        LayoutParam lp = (LayoutParam) child.getLayoutParams();
         int childHeight = child.getMeasuredHeight();
         lp.top = currentRowHeight + lp.topMargin + getChildVerticalSpacing(child) / 2;
         lp.left = totalWidth + lp.leftMargin + getChildHorizontalSpacing(child) / 2;
@@ -570,7 +552,7 @@ public class FlowLayout extends ViewGroup {
     while (weightChildList.size() > 0) {
       int childIndex = weightChildList.get(0);
       View weightChild = getChildAt(childIndex);
-      FlowLayoutParam lp = (FlowLayoutParam) weightChild.getLayoutParams();
+      LayoutParam lp = (LayoutParam) weightChild.getLayoutParams();
 
       int childWidthMode = MeasureSpec.EXACTLY;
       int childHeightMode = MeasureSpec.EXACTLY;
@@ -598,7 +580,7 @@ public class FlowLayout extends ViewGroup {
       if (child.getVisibility() == GONE) {
         continue;
       }
-      FlowLayoutParam lp = (FlowLayoutParam) child.getLayoutParams();
+      LayoutParam lp = (LayoutParam) child.getLayoutParams();
 
       int left = lp.left;
       int top = lp.top;
@@ -615,7 +597,7 @@ public class FlowLayout extends ViewGroup {
   }
 
   private int getChildHorizontalSpacing(View child) {
-    FlowLayoutParam lp = (FlowLayoutParam) child.getLayoutParams();
+    LayoutParam lp = (LayoutParam) child.getLayoutParams();
     int childHorizontalSpacing = horizontalSpacing == SPACING_NONE ? 0 : horizontalSpacing;
 
     childHorizontalSpacing =
@@ -623,10 +605,8 @@ public class FlowLayout extends ViewGroup {
     return childHorizontalSpacing;
   }
 
-
-
   private int getChildVerticalSpacing(View child) {
-    FlowLayoutParam lp = (FlowLayoutParam) child.getLayoutParams();
+    LayoutParam lp = (LayoutParam) child.getLayoutParams();
     int childVerticalSpacing = verticalSpacing == SPACING_NONE ? 0 : verticalSpacing;
 
     childVerticalSpacing =
@@ -635,21 +615,21 @@ public class FlowLayout extends ViewGroup {
   }
 
   @Override
-  protected FlowLayoutParam generateDefaultLayoutParams() {
-    return new FlowLayoutParam(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
+  protected LayoutParam generateDefaultLayoutParams() {
+    return new LayoutParam(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
   }
 
   @Override
-  protected FlowLayoutParam generateLayoutParams(LayoutParams p) {
-    return new FlowLayoutParam(p);
+  protected LayoutParam generateLayoutParams(LayoutParams p) {
+    return new LayoutParam(p);
   }
 
   @Override
-  public FlowLayoutParam generateLayoutParams(AttributeSet attrs) {
-    return new FlowLayoutParam(getContext(), attrs);
+  public LayoutParam generateLayoutParams(AttributeSet attrs) {
+    return new LayoutParam(getContext(), attrs);
   }
 
-  public static class FlowLayoutParam extends MarginLayoutParams {
+  public static class LayoutParam extends MarginLayoutParams {
 
     public static final int LINE_NUM_INVALID = Integer.MIN_VALUE;
     public float weight = -1;
@@ -659,11 +639,11 @@ public class FlowLayout extends ViewGroup {
     public int left = -1;
     public int top = -1;
 
-    public FlowLayoutParam(int width, int height) {
+    public LayoutParam(int width, int height) {
       super(width, height);
     }
 
-    public FlowLayoutParam(Context context, AttributeSet attributeSet) {
+    public LayoutParam(Context context, AttributeSet attributeSet) {
       super(context, attributeSet);
 
       TypedArray a = context.obtainStyledAttributes(attributeSet,
@@ -680,7 +660,7 @@ public class FlowLayout extends ViewGroup {
       }
     }
 
-    public FlowLayoutParam(LayoutParams source) {
+    public LayoutParam(LayoutParams source) {
       super(source);
     }
   }
